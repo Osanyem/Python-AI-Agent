@@ -1,17 +1,24 @@
 import os
 from config import CHAR_LIMIT
-from .common_functions import validate_directory, validate_file
+from .shared_functions import (
+    get_full_and_absolute_paths,
+    is_path_in_working_dir,
+)
 
 
 def get_file_content(working_directory, file_path):
-    is_valid, validation_string, path_to_file = validate_file(
+
+    abs_path_to_file, abs_path_to_working_dir = get_full_and_absolute_paths(
         working_directory, file_path
     )
-    if not is_valid:
-        return validation_string
+
+    if not is_path_in_working_dir(working_directory, file_path):
+        return f'Error: Cannot read "{abs_path_to_file}" as it is outside the permitted working directory'
+    if not os.path.isfile(abs_path_to_file):
+        return f'Error: File not found or is not a regular file: "{abs_path_to_file}"'
 
     try:
-        with open(path_to_file, "r") as file:
+        with open(abs_path_to_file, "r") as file:
             file_text = file.read()
 
             if len(file_text) > CHAR_LIMIT:
@@ -21,6 +28,6 @@ def get_file_content(working_directory, file_path):
                 )
             return file_text
     except FileNotFoundError as e:
-        return f"Error: The specified file was not found. {e}"
+        return f"Error: {e}"
     except Exception as e:
-        return f"Error: An error occurred: {e}"
+        return f"Error: {e}"

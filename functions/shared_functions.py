@@ -55,38 +55,6 @@ def validate_can_access_directory(working_directory, directory_to_validate):
     return (True, "", abs_path_to_directory)
 
 
-def validate_can_read_file(working_directory, file_path):
-    """
-    Validates if a file exists within a specified working directory and is a regular file.
-
-    Args:
-        working_directory (str): The absolute or relative path to the working directory.
-        file_name (str): The name of the file to validate.
-
-    Returns:
-        tuple: A tuple containing:
-            - bool: True if the file is valid, False otherwise.
-            - str: An error message if the file is invalid, or an empty string if valid.
-            - str: The absolute path to the file.
-    """
-    abs_path_to_file, abs_path_to_working_dir = get_full_and_absolute_paths(
-        working_directory, file_path
-    )
-    if not abs_path_to_file.startswith(abs_path_to_working_dir):
-        return (
-            False,
-            f'Error: Cannot read "{abs_path_to_file}" as it is outside the permitted working directory',
-            abs_path_to_file,
-        )
-    if not os.path.isfile(abs_path_to_file):
-        return (
-            False,
-            f'Error: File not found or is not a regular file: "{abs_path_to_file}"',
-            abs_path_to_file,
-        )
-    return (True, "", abs_path_to_file)
-
-
 def is_path_in_working_dir(working_directory, given_path):
     """
     Checks if a given path is within the specified working directory.
