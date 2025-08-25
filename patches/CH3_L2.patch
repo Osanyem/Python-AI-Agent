@@ -1,0 +1,165 @@
+diff --git a/.gitignore b/.gitignore
+index 5bf3735..1e73087 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -10,4 +10,3 @@ wheels/
+ .venv
+ 
+ .env
+-*.patch
+\ No newline at end of file
+diff --git a/config.py b/config.py
+index 00a1e00..7569247 100644
+--- a/config.py
++++ b/config.py
+@@ -1 +1,10 @@
+ CHAR_LIMIT = 10000
++SYSTEM_PROMPT = """
++You are a helpful AI coding agent.
++
++When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
++
++- List files and directories
++
++All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
++"""
+diff --git a/functions/run_python.py b/functions/run_python.py
+new file mode 100644
+index 0000000..77c1ac0
+--- /dev/null
++++ b/functions/run_python.py
+@@ -0,0 +1,41 @@
++import os
++import subprocess
++from functions.shared_functions import (
++    is_path_in_working_dir,
++    get_full_and_absolute_paths,
++)
++
++
++def run_python_file(working_directory, file_path, args=[]):
++    abs_path_to_file, abs_path_to_working_dir = get_full_and_absolute_paths(
++        working_directory, file_path
++    )
++    if not is_path_in_working_dir(working_directory, file_path):
++        return f'Error: Cannot execute "{file_path}" as it is outside the permitted working directory'
++    if not os.path.isfile(abs_path_to_file):
++        return f'Error: File "{file_path}" not found.'
++    if not abs_path_to_file.endswith(".py"):
++        return f'Error: "{file_path}" is not a Python file.'
++    try:
++        completed_process = subprocess.run(
++            ["python", abs_path_to_file] + args,
++            timeout=30,
++            capture_output=True,
++            text=True,
++            cwd=abs_path_to_working_dir,
++        )
++        stdout = completed_process.stdout.strip()
++        stderr = completed_process.stderr.strip()
++        output = []
++
++        if stdout:
++            output.append(f"STDOUT: {stdout}")
++        if stderr:
++            output.append(f"STDERR: {stderr}")
++        if completed_process.returncode != 0:
++            output.append(f"Process exited with code {completed_process.returncode}")
++        if not output:
++            return "No output produced."
++        return "\n".join(output)
++    except Exception as e:
++        return f"Error: executing Python file: {e}"
+diff --git a/functions/shared_functions.py b/functions/shared_functions.py
+index b8e8709..5634786 100644
+--- a/functions/shared_functions.py
++++ b/functions/shared_functions.py
+@@ -1,4 +1,5 @@
+ import os
++from google.genai import types
+ 
+ 
+ def get_full_and_absolute_paths(working_directory, given_path):
+@@ -42,3 +43,23 @@ def is_path_in_working_dir(working_directory, given_path):
+         working_directory, given_path
+     )
+     return abs_path_to_given_path.startswith(abs_path_to_working_dir)
++
++
++schema_get_files_info = types.FunctionDeclaration(
++    name="get_files_info",
++    description="Lists files in the specified directory along with their sizes, constrained to the working directory.",
++    parameters=types.Schema(
++        type=types.Type.OBJECT,
++        properties={
++            "directory": types.Schema(
++                type=types.Type.STRING,
++                description="The directory to list files from, relative to the working directory. If not provided, lists files in the working directory itself.",
++            ),
++        },
++    ),
++)
++available_functions = types.Tool(
++    function_declarations=[
++        schema_get_files_info,
++    ]
++)
+diff --git a/main.py b/main.py
+index aa4a03e..fe2ef54 100644
+--- a/main.py
++++ b/main.py
+@@ -4,6 +4,8 @@ from dotenv import load_dotenv
+ from google import genai
+ from google.genai import types
+ 
++from config import SYSTEM_PROMPT
++
+ 
+ def main():
+     load_dotenv()
+@@ -37,7 +39,9 @@ def get_user_input():
+ 
+ def generate_content(client, messages, is_verbose):
+     response = client.models.generate_content(
+-        model="gemini-2.0-flash-001", contents=messages
++        model="gemini-2.0-flash-001",
++        contents=messages,
++        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+     )
+     print(response.text)
+     if is_verbose:
+diff --git a/tests.py b/tests.py
+index ae96f8c..d98db20 100644
+--- a/tests.py
++++ b/tests.py
+@@ -1,15 +1,24 @@
+ # from functions.get_files_info import get_files_info
+ from functions.get_file_content import get_file_content
+ from functions.write_file import write_file
++from functions.run_python import run_python_file
+ 
+ 
+ def test():
+-    result = write_file("calculator", "lorem.txt", "wait, this isn't lorem ipsum")
+-    print(f"Result for 'lorem.txt': \n {result}")
+-    result = write_file("calculator", "pkg/morelorem.txt", "lorem ipsum dolor sit amet")
+-    print(f"Result for 'pkg/morelorem.txt': \n {result}")
+-    result = write_file("calculator", "/tmp/temp.txt", "this should not be allowed")
+-    print(f"Result for '/tmp/temp.txt': \n {result}")
++    result = run_python_file("calculator", "main.py")
++    print(f"Result for 'main.py': \n{result}")
++
++    result = run_python_file("calculator", "main.py", ["3 + 5"])
++    print(f"Result for 'main.py' with input '3 + 5': \n{result}")
++
++    result = run_python_file("calculator", "tests.py")
++    print(f"Result for 'tests.py': \n{result}")
++
++    result = run_python_file("calculator", "../main.py")
++    print(f"Result for '../main.py': \n{result}")
++
++    result = run_python_file("calculator", "nonexistent.py")
++    print(f"Result for 'nonexistent.py': \n{result}")
+ 
+ 
+ if __name__ == "__main__":
