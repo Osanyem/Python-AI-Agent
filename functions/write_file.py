@@ -1,5 +1,5 @@
 import os
-from functions.shared_functions import (
+from functions.shared import (
     is_path_in_working_dir,
     get_full_and_absolute_paths,
 )

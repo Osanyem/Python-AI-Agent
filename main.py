@@ -3,6 +3,9 @@ import sys
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from functions.shared import available_functions
+
+from config import SYSTEM_PROMPT
 
 
 def main():
@@ -28,7 +31,7 @@ def main():
 def get_user_input():
     is_verbose = "--verbose" in sys.argv
     args = []
-    for arg in sys.argv:
+    for arg in sys.argv[1:]:  # Skip the script name (sys.argv[0])
         if not arg.startswith("--"):
             args.append(arg)
 
@@ -37,9 +40,18 @@ def get_user_input():
 
 def generate_content(client, messages, is_verbose):
     response = client.models.generate_content(
-        model="gemini-2.0-flash-001", contents=messages
+        model="gemini-2.0-flash-001",
+        contents=messages,
+        config=types.GenerateContentConfig(
+            tools=[available_functions], system_instruction=SYSTEM_PROMPT
+        ),
     )
-    print(response.text)
+    if not response.function_calls:
+        return response.text
+
+    for function_call_part in response.function_calls:
+        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+
     if is_verbose:
         print(f"User prompt: {messages}")
         print("Prompt tokens:", response.usage_metadata.prompt_token_count)
