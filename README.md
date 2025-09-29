@@ -1,7 +1,7 @@
 # AI Agent
 
-This is a small python project which is a toy version of [Claude Code](https://www.anthropic.com/claude-code).
-This is a guided project on [Boot.dev](https://www.boot.dev).
+A lightweight Python project inspired by [Claude Code](https://www.anthropic.com/claude-code), showcasing core concepts in code analysis and execution within a simplified environment.
+
 
 :exclamation: **_This Agent can run arbitrary python code. It is for learning purposes only. Use at your own risk._**
 
