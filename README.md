@@ -3,7 +3,7 @@
 A lightweight Python project inspired by [Claude Code](https://www.anthropic.com/claude-code), showcasing core concepts in code analysis and execution within a simplified environment.
 
 
-:exclamation: **_This Agent can run arbitrary python code. It is for learning purposes only. Use at your own risk._**
+:exclamation: **_This Agent can run arbitrary python code_**
 
 ## Learning Goals
 
@@ -20,8 +20,8 @@ A lightweight Python project inspired by [Claude Code](https://www.anthropic.com
 
 1. **Clone or download this repository**
    ```bash
-   git clone <repository-url>
-   cd ai-agent-main
+   git clone https://github.com/Osanyem/Python-AI-Agent/
+   cd Python-AI-Agent
    ```
 
 2. **Create a virtual environment (recommended)**
